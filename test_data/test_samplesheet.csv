@@ -1,0 +1,5 @@
+sample_name,read1,read2
+12122025_RK_001_03-1E,test_data/12122025_RK_001_03-1E_R1.fastq.gz,test_data/12122025_RK_001_03-1E_R2.fastq.gz
+20260122_JE__001_03-1E,test_data/20260122_JE__001_03-1E_R1.fastq.gz,test_data/20260122_JE__001_03-1E_R2.fastq.gz
+12122025_RK_001_02-1E,test_data/12122025_RK_001_02-1E_R1.fastq.gz,test_data/12122025_RK_001_02-1E_R2.fastq.gz
+251120_GL_001_01-1E,test_data/251120_GL_001_01-1E_R1.fastq.gz,test_data/251120_GL_001_01-1E_R2.fastq.gz
