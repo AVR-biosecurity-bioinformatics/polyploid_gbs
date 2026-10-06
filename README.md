@@ -6,17 +6,17 @@ This Nextflow pipeline aligns paired-end ddRAD reads to a FASTA of target loci a
 
 Run the pipeline on BASC with Nextflow, SLURM and Conda available. The pipeline uses process-specific Conda packages defined in `main.nf`.
 
+# Running steps 
+
 ## 1. Install nextflow
 
 Install a [self-install `nextflow` package](https://www.nextflow.io/docs/latest/install.html#self-install) 
 
-# 2. clone the repository
+## 2. clone the repository
 
 ```
-analysis_dir=/path/to/my/analysis/dir
-
-# clone Freyr repository
-git clone https://github.com/AVR-biosecurity-bioinformatics/polyploid_gbs.git $analysis_dir 
+# Clone repository to my current directory
+git clone https://github.com/AVR-biosecurity-bioinformatics/polyploid_gbs.git .
 ```
 
 ## 3. Prepare a samplesheet
@@ -40,17 +40,19 @@ bash assets/make_samplesheet.sh gorse_samplesheet.csv \
 
 Check the generated sample names and paths before running. The current pipeline parser resolves relative `read1` and `read2` paths against the **pipeline project directory**; absolute paths also work.
 
-## Run a small test
+## 4. Run a small test set
 
-The pipleine includes a small test dataset that can be run using:
+The pipeline includes a small test dataset that can be run from the directory you have cloned the pipeline into using the following:
 
 ```bash
 nextflow run . -profile test --slurm_account 'fruitfly' -resume
 ```
 
-## Run the full dataset (Diploid calling)
+## 5. Run the full dataset (Diploid calling)
 
 From the pipeline directory:
+
+Replace `fruitfly` with the SLURM account you are authorised to use. The number of parallel FreeBayes chunks defaults to the value in `main.nf`; override it with `--nchunks N` if needed.
 
 ```bash
 REFERENCE="/group/pathogens/IAWS/Projects/Biocontrol/gorse/AGRF_NXGSQCAGRF25080393-2_23MVYYLT3_gbs-2/NXGSQCAGRF25080393-2_consensus.fa"
@@ -65,7 +67,7 @@ nextflow run . \
     -resume
 ```
 
-## Run the full dataset (Hexaploid calling)
+## 6. Run the full dataset (Hexaploid calling)
 
 From the pipeline directory:
 
@@ -82,7 +84,6 @@ nextflow run . \
     -resume
 ```
 
-Replace `fruitfly` with the SLURM account you are authorised to use. The number of parallel FreeBayes chunks defaults to the value in `main.nf`; override it with `--nchunks N` if needed.
 
 ## Changing pipeline parameters
 
@@ -102,11 +103,11 @@ nextflow run . \
 ```
 
 ## Full parameter list
-| Parameter | Type | Required | Description |
+| Parameter | Type | Default | Description |
 |------------|------|----------|-------------|
-| `reference` | `Path` | Yes | FASTA containing the ddRAD target loci. |
-| `samplesheet` | `String` | Yes | Path to the sample sheet used to locate input reads. |
-| `slurm_account` | `String` | Yes | SLURM account for submitted jobs. |
+| `reference` | `Path` | **REQUIRED** | FASTA containing the ddRAD target loci. |
+| `samplesheet` | `String` | **REQUIRED** | Path to the sample sheet used to locate input reads. |
+| `slurm_account` | `String` | **REQUIRED** | SLURM account for submitted jobs. |
 | `nchunks` | `Integer` | `200` | Number of groups of whole loci called in parallel. |
 | `lower_percentile` | `Integer` | `1` | Exclude loci below this percentile. |
 | `upper_percentile` | `Integer` | `99` | Exclude loci above this percentile. |
@@ -124,11 +125,9 @@ nextflow run . \
 | `use_best_n_alleles` | `Integer` | `4` | Evaluate at most the four best-supported SNP alleles. |
 | `no_partial_observations` | `Boolean` | `false` | Exclude reads that do not span the detection window. |
 
-
 ## Outputs
 
-The default output directory is `output/results/`, as configured in `nextflow.config`:
-
+The default output directory is `output/results/` and will contain the following:
 - `bam/`: final per-sample BAMs and indexes.
 - `vcf/`: joint cohort VCF and index.
 - `qc/bam_stats/`: raw per-sample Riker files.
