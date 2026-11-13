@@ -520,12 +520,8 @@ workflow {
         .map { bed -> tuple(bed.baseName, bed) }
 
     // Calculate cohort size - used for scaling memory
-    cohort_size = merged_bams
-        .unique()
-        .collect()
-        .map { bam, _bai ->
-            bam.size()
-        }
+    cohort_size = MERGE_SAMPLE_BAMS.out.bam
+        .count()
 
     // Each chunk runs against the same reference and cohort BAMs
     chunk_vcfs = FREEBAYES(
