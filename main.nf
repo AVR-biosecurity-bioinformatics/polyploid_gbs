@@ -275,13 +275,17 @@ process FREEBAYES {
     tag "${chunk_id}"
     conda 'bioconda::freebayes=1.3.10 bioconda::bcftools=1.24'
     cpus 2
-    memory { 24.GB * task.attempt }
+
+    // Scale memory based on cohort size.
+    memory ((12.GB + 80.MB * cohort_size) * task.attempt)    
+    
     time { 6.h * task.attempt }
 
     input:
     tuple val(chunk_id), path(chunk_bed)
     tuple path(ref_genome), path(genome_index_files)
     path bam_files
+    val cohort_size
 
     output:
     tuple val(chunk_id),
@@ -515,8 +519,21 @@ workflow {
         .flatten()
         .map { bed -> tuple(bed.baseName, bed) }
 
+    // Calculate cohort size - used for scaling memory
+    cohort_size = merged_bams
+        .unique()
+        .collect()
+        .map { bam, _bai ->
+            bam.size()
+        }
+
     // Each chunk runs against the same reference and cohort BAMs
-    chunk_vcfs = FREEBAYES(chunks, reference_indexed, merged_bams)
+    chunk_vcfs = FREEBAYES(
+        chunks,
+        reference_indexed,
+        merged_bams,
+        cohort_size
+    )
 
     // Concatenate freebayes called chunks into final vcf
     vcfs_to_merge = chunk_vcfs
