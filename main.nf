@@ -21,16 +21,16 @@ params {
     hwe_priors_off: Boolean = true             // Disable the Hardy-Weinberg equilibrium prior.
 
     // FreeBayes: read and base filters
-    min_mapping_quality: Integer = 20          // Ignore reads with mapping quality below 20.
-    min_base_quality: Integer = 20             // Ignore allele observations with base quality below 20.
+    min_mapping_quality: Integer = 20          // Ignore reads with mapping quality <N.
+    min_base_quality: Integer = 20             // Ignore allele observations with base quality <N.
     min_supporting_allele_qsum: Integer = 0    // Minimum summed quality supporting an allele; 0 adds no threshold.
 
     // FreeBayes: site and candidate-allele thresholds
     min_coverage: Integer = 10                 // Minimum site coverage required for FreeBayes to process a site.
-    limit_coverage: Integer = 100000           // Coverage-limit setting; verify its behaviour in your installed FreeBayes.
+    limit_coverage: Integer = 250              // Downsamples reads for each individual sample to this value if exceeded.
     min_alternate_fraction: Double = 0.05d     // Minimum alternate-allele fraction within a sample to evaluate a site.
     min_alternate_count: Integer = 2           // Minimum alternate-supporting observations within a sample.
-    use_best_n_alleles: Integer = 4            // Evaluate at most the four best-supported SNP alleles.
+    use_best_n_alleles: Integer = 4            // Evaluate at most this many best supported SNP alleles
   
     // FreeBayes: haplotype observations
     no_partial_observations: Boolean = false   // If true, exclude reads that do not span the detection window.
