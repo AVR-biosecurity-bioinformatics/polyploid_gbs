@@ -169,7 +169,7 @@ process MAKE_REFERENCE_CHUNKS {
 
     input:
     tuple path(ref_genome), path(index_files)
-    tuple path(bam), path(bai)
+    path bam_files
     val nchunks
     val lower_percentile
     val upper_percentile
@@ -282,7 +282,7 @@ process FREEBAYES {
     input:
     tuple val(chunk_id), path(chunk_bed)
     tuple path(ref_genome), path(genome_index_files)
-    tuple path(bam), path(bai)
+    path bam_files
     val cohort_size
 
     output:
