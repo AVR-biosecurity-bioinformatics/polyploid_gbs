@@ -277,8 +277,8 @@ process FREEBAYES {
     cpus 2
     // Scale memory based on cohort size.
     memory { 
-        def base_mb = 12288 // 12 GB in MB
-        def per_sample_mb = 80 * (cohort_size as int)
+        def base_mb = 4096 // 4 GB in MB
+        def per_sample_mb = 128 * (cohort_size as int)
         return ((base_mb + per_sample_mb) * task.attempt).MB 
     }
     time { 6.h * task.attempt }
