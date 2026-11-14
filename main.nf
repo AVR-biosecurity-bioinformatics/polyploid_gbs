@@ -320,6 +320,7 @@ process FREEBAYES {
     # Run BAM files through freebayes    
     freebayes \
         -f chunk.fa \
+        -t ${chunk_bed} \
         -L bam.list \
         --ploidy ${params.ploidy} \
         --theta ${params.theta} \
@@ -334,6 +335,7 @@ process FREEBAYES {
         ${params.pooled_discrete ? '--pooled-discrete' : ''} \
         ${params.hwe_priors_off ? '--hwe-priors-off' : ''} \
         ${params.no_partial_observations ? '--no-partial-observations' : ''} \
+        | bcftools reheader -f ${ref_genome}.fai \
         | bcftools view -Oz -o "${chunk_id}.vcf.gz"
 
     bcftools index -c "${chunk_id}.vcf.gz"
@@ -372,10 +374,10 @@ process CONCAT_VCFS {
         --threads ${task.cpus} \
         --naive \
         -f vcf.list \
-        -o raw_merged.vcf.gz
+        -o cohort.vcf.gz
     
     # Restore the full master FASTA contig dictionary in the VCF header
-    bcftools reheader -f ${ref_genome}.fai raw_merged.vcf.gz -o cohort.vcf.gz
+    #bcftools reheader -f ${ref_genome}.fai raw_merged.vcf.gz -o cohort.vcf.gz
 
     # Index final FAI
     bcftools index -c cohort.vcf.gz
