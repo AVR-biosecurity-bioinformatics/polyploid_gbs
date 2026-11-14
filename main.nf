@@ -273,9 +273,14 @@ process MAKE_REFERENCE_CHUNKS {
 // Nextflow process that runs freebayes on a subset of intervals
 process FREEBAYES {
     tag "${chunk_id}"
-    conda 'bioconda::freebayes=1.3.10 bioconda::bcftools=1.24'
+    conda 'bioconda::freebayes=1.3.10 bioconda::bcftools=1.24 bioconda::samtools=1.24'
     cpus 2
-    memory ((12.GB + 80.MB * cohort_size) * task.attempt) // Scale memory based on cohort size.
+    // Scale memory based on cohort size.
+    memory { 
+        def base_mb = 12288 // 12 GB in MB
+        def per_sample_mb = 80 * (cohort_size as int)
+        return ((base_mb + per_sample_mb) * task.attempt).MB 
+    }
     time { 6.h * task.attempt }
     maxForks 50
 
@@ -304,14 +309,18 @@ process FREEBAYES {
         ulimit -n "\$HARD_LIMIT"
     fi
 
+    # Extract only the contigs for this chunk into a mini-FASTA
+    cut -f1 ${chunk_bed} | sort -u > contigs.txt
+    samtools faidx ${ref_genome} -r contigs.txt > chunk.fa
+    samtools faidx chunk.fa
+
     # Create list of BAM files to run across
     printf '%s\\n' *.bam > bam.list
 
-    # Run BAM files through freebayes
+    # Run BAM files through freebayes    
     freebayes \
-        -f ${ref_genome} \
+        chunk.fa \
         -L bam.list \
-        -t ${chunk_bed} \
         --ploidy ${params.ploidy} \
         --theta ${params.theta} \
         --min-alternate-fraction ${params.min_alternate_fraction} \
@@ -341,6 +350,7 @@ process CONCAT_VCFS {
 
     input:
     tuple path(vcfs), path(csis)
+    tuple path(ref_genome), path(genome_index_files)
 
     output:
     tuple path('cohort.vcf.gz'), path('cohort.vcf.gz.csi'), emit: vcf
@@ -354,14 +364,20 @@ process CONCAT_VCFS {
     """
     set -euo pipefail
 
+    # Create list of VCF fiels
     printf '%s\\n' "${vcf_list}" > vcf.list
 
+    # Fast concatenation (no decompression needed since samples match across chunks)
     bcftools concat \
         --threads ${task.cpus} \
         --naive \
         -f vcf.list \
-        -o cohort.vcf.gz
+        -o raw_merged.vcf.gz
+    
+    # Restore the full master FASTA contig dictionary in the VCF header
+    bcftools reheader -f ${ref_genome}.fai raw_merged.vcf.gz -o cohort.vcf.gz
 
+    # Index final FAI
     bcftools index -c cohort.vcf.gz
     """
 }
@@ -550,7 +566,10 @@ workflow {
             )
         }
 
-    CONCAT_VCFS(vcfs_to_merge)
+    CONCAT_VCFS(
+        vcfs_to_merge,
+        reference_indexed
+        )
     
     // Calculate statistics on final vcf
     VCF_STATS(
