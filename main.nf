@@ -169,7 +169,7 @@ process MAKE_REFERENCE_CHUNKS {
 
     input:
     tuple path(ref_genome), path(index_files)
-    path bam_files
+    tuple path(bam), path(bai)
     val nchunks
     val lower_percentile
     val upper_percentile
@@ -275,16 +275,14 @@ process FREEBAYES {
     tag "${chunk_id}"
     conda 'bioconda::freebayes=1.3.10 bioconda::bcftools=1.24'
     cpus 2
-
-    // Scale memory based on cohort size.
-    memory ((12.GB + 80.MB * cohort_size) * task.attempt)    
-    
+    memory ((12.GB + 80.MB * cohort_size) * task.attempt) // Scale memory based on cohort size.
     time { 6.h * task.attempt }
+    maxForks 50
 
     input:
     tuple val(chunk_id), path(chunk_bed)
     tuple path(ref_genome), path(genome_index_files)
-    path bam_files
+    tuple path(bam), path(bai)
     val cohort_size
 
     output:
@@ -294,28 +292,39 @@ process FREEBAYES {
           emit: chunk_vcf
 
     script:
+    def req_files = Math.max(4096, cohort_size * 2 + 1024)
     """
     set -euo pipefail
 
+    # Raise open file limit safely up to the node's hard limit
+    HARD_LIMIT=\$(ulimit -Hn)
+    if [ "\$HARD_LIMIT" = "unlimited" ] || [ ${req_files} -le "\$HARD_LIMIT" ]; then
+        ulimit -n ${req_files}
+    else
+        ulimit -n "\$HARD_LIMIT"
+    fi
+
+    # Create list of BAM files to run across
     printf '%s\\n' *.bam > bam.list
 
-    freebayes \\
-        -f ${ref_genome} \\
-        -L bam.list \\
-        -t ${chunk_bed} \\
-        --ploidy ${params.ploidy} \\
-        --theta ${params.theta} \\
-        --min-alternate-fraction ${params.min_alternate_fraction} \\
-        --min-alternate-count ${params.min_alternate_count} \\
-        --use-best-n-alleles ${params.use_best_n_alleles} \\
-        --limit-coverage ${params.limit_coverage} \\
-        --min-mapping-quality ${params.min_mapping_quality} \\
-        --min-base-quality ${params.min_base_quality} \\
-        --min-supporting-allele-qsum ${params.min_supporting_allele_qsum} \\
-        --min-coverage ${params.min_coverage} \\
-        ${params.pooled_discrete ? '--pooled-discrete' : ''} \\
-        ${params.hwe_priors_off ? '--hwe-priors-off' : ''} \\
-        ${params.no_partial_observations ? '--no-partial-observations' : ''} \\
+    # Run BAM files through freebayes
+    freebayes \
+        -f ${ref_genome} \
+        -L bam.list \
+        -t ${chunk_bed} \
+        --ploidy ${params.ploidy} \
+        --theta ${params.theta} \
+        --min-alternate-fraction ${params.min_alternate_fraction} \
+        --min-alternate-count ${params.min_alternate_count} \
+        --use-best-n-alleles ${params.use_best_n_alleles} \
+        --limit-coverage ${params.limit_coverage} \
+        --min-mapping-quality ${params.min_mapping_quality} \
+        --min-base-quality ${params.min_base_quality} \
+        --min-supporting-allele-qsum ${params.min_supporting_allele_qsum} \
+        --min-coverage ${params.min_coverage} \
+        ${params.pooled_discrete ? '--pooled-discrete' : ''} \
+        ${params.hwe_priors_off ? '--hwe-priors-off' : ''} \
+        ${params.no_partial_observations ? '--no-partial-observations' : ''} \
         | bcftools view -Oz -o "${chunk_id}.vcf.gz"
 
     bcftools index -c "${chunk_id}.vcf.gz"
