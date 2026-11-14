@@ -319,7 +319,7 @@ process FREEBAYES {
 
     # Run BAM files through freebayes    
     freebayes \
-        chunk.fa \
+        -f chunk.fa \
         -L bam.list \
         --ploidy ${params.ploidy} \
         --theta ${params.theta} \
