@@ -282,7 +282,7 @@ process FREEBAYES {
         return ((base_mb + per_sample_mb) * task.attempt).MB 
     }
     time { 6.h * task.attempt }
-    maxForks 50
+    maxForks 250
 
     input:
     tuple val(chunk_id), path(chunk_bed)
