@@ -2,6 +2,9 @@
 
 This Nextflow pipeline aligns paired-end ddRAD reads to a FASTA of target loci and calls variants jointly across samples. It trims reads with fastp, aligns them with Minibwa, merges libraries that share a `sample_name`, calls variants with FreeBayes across parallel groups of whole loci, and generates Riker, bcftools and MultiQC statistics.
 
+> [!WARNING]
+> This pipeline is currently **Experimental** and being actively developed, and is not currently usable outside Agriculture Victoria BASC HPC
+
 ## Requirements
 
 Run the pipeline on BASC with Nextflow, SLURM and Conda available. The pipeline uses process-specific Conda packages defined in `main.nf`.
